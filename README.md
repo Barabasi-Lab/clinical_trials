@@ -3,8 +3,8 @@
 ## Python version
 
 - **Version**: v1
-- **Creator**: [Kishore Vasan] [viprankishore\@gmail.com](mailto:viprankishore@gmail.com) 
-- **Last code update**: 03/14/2022 
+- **Creator**: Kishore Vasan 
+- **Last code update**: 03/15/2022 
 - **Last data update**: 11/01/2020 (date the xml files were extracted)
 - **Keywords**: Clinical Trials; Drug Innovation
 - **Rights Statement**: Open Data
