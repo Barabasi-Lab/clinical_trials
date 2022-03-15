@@ -9,16 +9,11 @@
 - **Keywords**: Clinical Trials; Drug Innovation
 - **Rights Statement**: Open Data
 
+This script does the following: 
 
-#### Generated files
-
-- data/out/organized_ct_data -- clinical trials data 
--   ID \<chr>: Drug ID in DrugBank
--   Name \<chr>: Official drug name in DrugBank
-
-- data/out/drug_mapped_ct_data -- clinical trials mapped drug data
-- 
-
+- parses the xml data from clinical trials (see `extract_ct_xml.py`)
+- curates the drug intervention data from clinical trials (see `curate_drug_intervantions_ct.py`)
+- provides a framework to read/ group the curated data (see `read_data.py`)
 
 #### Functions 
 
@@ -62,15 +57,21 @@ Input files : __ save the following files in the ../data/raw folder
 4) products.csv -- containing drugbank id, name, and its corresponding products
 5) drugs_external_identifiers.csv -- containings the drugbank id, name, and its corresponding external identifiers
 
-Output: `drug_mapped_ct_data.csv`
+Output: 
+
+1) `drug_mapped_ct_data.csv`
    - nct_id \<chr> : clinical trial id map of the trial
    - Name \<chr> : official DrugBank name in lowercase 
    - intervention_type \<chr> : drug 
 
+2) `placebo_trials.csv`
+   - nct_id \<chr> : clinical trial id map of the trial
+   - Name \<chr> : official DrugBank name in lowercase
+   - intervention_type \<chr> : drug
 
-#### methodology: 
+##### methodology: 
 
-This file loads the intervention data and maps it through a five step process. 
+The `curate_drug_interventions_ct.py` file loads the intervention data and maps it through a five step process. 
 
 1) Search for direct text matching with the drug name in DrugBank
 
@@ -82,14 +83,28 @@ This file loads the intervention data and maps it through a five step process.
 
 5) fuzzy string match of the names with the drugbank names
 
+#### `read_data.py`
+
+This script reads all the curated clinical trials data.
+
+Input:
+1)  ../data/raw/organized_ct_data.csv
+2) ../data/out/drug_mapped_ct_data.csv
+3) ../data/raw/all_drugbank_drugs.csv
+4) ../data/raw/PPI_net.csv
+5) ../data/out/placebo_trials.csv
+6) ../data/raw/druggable_genome.tsv
+7) ../data/raw/drug_approved_mapping.csv 
+
+Output: curated data available to use
    
 #### Running the parser
 
 - The latest XML data of all clinical trials can be downloaded from clinicaltrials.gov -- save it to /data/raw folder
 - First, run the `extract_ct_xml.py` 
-- Then run the `curate_drug_interventions_ct.py` files, 
-- Finally, `read_data.py` curates drug data and clinical trials data 
-- Data will be saved in the /data/out folder
+- Then run the `curate_drug_interventions_ct.py` file, 
+- Finally, import using `from read_data import *` then `load_data()`
+- All xml parsed data will be saved in the `data/raw` folder while the curated data will be saved in `data/out`
 
 ### Data Stats:
 ```

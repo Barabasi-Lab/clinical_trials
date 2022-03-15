@@ -1,6 +1,7 @@
 """
 #!/usr/bin/env python
 Author= Kishore Vasan
+Date = 03/15/2022
 
 # Description:
 ## This script reads all the curated clinical trials data
@@ -9,13 +10,13 @@ Author= Kishore Vasan
 """
 
 ### List of data files needed:
-# ct_data/clean_data/organized_ct_data.csv
-# ct_data/clean_data/drug_mapped_ct_data_final_2.csv
-# drug_data/all_drugbank_drugs.csv
-# drug_data/PPI_covid_paper.csv
-# ct_data/clean_data/placebo_trials.csv
-# drug_data/druggable_genome.tsv
-# drug_data/drug_approved_mapping.csv
+# ../data/raw/organized_ct_data.csv
+# ../data/out/drug_mapped_ct_data.csv
+# ../data/raw/all_drugbank_drugs.csv
+# ../data/raw/PPI_net.csv
+# ../data/out/placebo_trials.csv
+# ../data/raw/druggable_genome.tsv
+# ../data/raw/drug_approved_mapping.csv
 
 # import packages
 import pandas as pd
@@ -31,17 +32,17 @@ def load_data():
     global placebo_trials, druggable_genome_df
     global drug_approval_dates
 
-    df = pd.read_csv("ct_data/clean_data/organized_ct_data.csv")
+    df = pd.read_csv("../data/raw/organized_ct_data.csv")
     print("Number of Trials:", df.nct_id.nunique())
     print("--")
 
-    drug_df = pd.read_csv("ct_data/clean_data/drug_mapped_ct_data.csv")
+    drug_df = pd.read_csv("../data/out/drug_mapped_ct_data.csv")
     print("Number of Drug Trials:", drug_df.nct_id.nunique())
     print("Proportion of drug trials mapped:", float(drug_df.nct_id.nunique())/float(df[~(df.intervention_types.isna()) & (df.intervention_types.str.contains('Drug'))].nct_id.nunique()))
     print("Number of Interventions:", drug_df.intervention.nunique())
     print("--")
 
-    db_target_df = pd.read_csv("drug_data/all_drugbank_drugs.csv")
+    db_target_df = pd.read_csv("../data/raw/all_drugbank_drugs.csv")
     db_target_df['Name'] = db_target_df.Name.str.lower()
     db_target_df = db_target_df[db_target_df.organism == "Humans"]
     print("drugbank...")
@@ -68,7 +69,7 @@ def load_data():
     dt_start_year['year'] = dt_start_year.year.astype(int)
 
     print("loading ppi network")
-    ppi_data = pd.read_csv("drug_data/PPI_covid_paper.csv")
+    ppi_data = pd.read_csv("../data/raw/PPI_net.csv")
     ppi_data = ppi_data[['Symbol_A','Symbol_B']]
     ppi_data.columns = ['protein_1','protein_2']
     print("Number of genes:", len(set.union(set(ppi_data.protein_1), set(ppi_data.protein_2))))
@@ -79,7 +80,7 @@ def load_data():
     print(nx.info(ppi_g))
     print("--")
 
-    placebo_trials = pd.read_csv("ct_data/clean_data/placebo_trials.csv")
+    placebo_trials = pd.read_csv("../data/out/placebo_trials.csv")
     placebo_trials = placebo_trials.drop_duplicates()
     placebo_trials['placebo'] = True
     print("Number of placebo trials:", placebo_trials.nct_id.nunique())
@@ -92,14 +93,14 @@ def load_data():
     dt_trial_df = pd.merge(dt_trial_df, placebo_trials[['nct_id','drug_map','placebo']], how='left', left_on=['nct_id','intervention'], right_on=['nct_id','drug_map'])
     dt_trial_df['placebo'] = dt_trial_df.placebo.fillna(False)
 
-    druggable_genome_df = pd.read_csv("drug_data/druggable_genome.tsv", sep='\t')
+    druggable_genome_df = pd.read_csv("../data/raw/druggable_genome.tsv", sep='\t')
     #druggable_genome_df = druggable_genome_df[druggable_genome_df.category == 'DRUGGABLE GENOME']
     druggable_genome_set = set(druggable_genome_df.entrez_gene_symbol.tolist())
     druggable_genome_set = druggable_genome_set - set(list(ppi_g.nodes()))
     print("Num druggable genes:", len(druggable_genome_set))
     print("--")
 
-    drug_approval_dates = pd.read_csv("drug_data/drug_approved_mapping.csv")
+    drug_approval_dates = pd.read_csv("../data/raw/drug_approved_mapping.csv")
     print("N approved drugs:", drug_approval_dates.db_id.nunique())
     drug_approval_dates['Name'] = drug_approval_dates.Name.str.lower()
     drug_approval_dates.columns = ['db_id', 'product_name', 'intervention', 'labeler', 'start_marketting',

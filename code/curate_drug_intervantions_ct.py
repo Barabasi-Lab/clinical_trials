@@ -33,6 +33,8 @@ Input files : __ save the following files in the ../data/raw folder
 
     1.6) save this data `../data/out/drug_mapped_ct_data.csv`
 
+2. find the drugs used as placebo -- file saved: `../data/out/placebo_trials.csv`
+
 """
 
 # import files
@@ -372,8 +374,6 @@ final_drug_map_df.to_csv("../data/out/drug_mapped_ct_data.csv", index=False)
 #print(unmapped_df.head())
 #unmapped_df.to_csv('ct_data/clean_data/unmapped_drug_trials.csv', index=False)
 
-"""
-
 ####
 ## Extra: Get placebo trials and drugs
 ####
@@ -607,5 +607,5 @@ final_placebo_trials.head()
 
 print("number of placebo trials:", final_placebo_trials.nct_id.nunique())
 print("number of placebo drugs:", final_placebo_trials.drug_map.nunique())
-final_placebo_trials.to_csv("ct_data/clean_data/placebo_trials.csv", index = False)
-"""
+final_placebo_trials.to_csv("../data/out/placebo_trials.csv", index = False)
+
