@@ -1,11 +1,13 @@
 """
 #!/usr/bin/env python
 Author= Kishore Vasan
-
+Date = 03/15/2022
+### Keywords: clinical trials;
 # Description:
 ## This script loads the XML Files of the clinical trials
 ## and organizes them into readable csv files
-### file saved: `ct_data/clean_data/.. 1) organized_ct_data.csv 2) intervention_ct_data.csv 3) funder_ct_data.csv`
+### input: xml files of clinicaltrials.gov bulk download
+### out: 1) organized_ct_data.csv 2) funder_ct_data.csv 3) intervention_ct_data.csv
 """
 
 # import packages
@@ -24,7 +26,7 @@ warnings.filterwarnings('ignore')
 
 # Get ClinicalTrials.Gov data
 
-files_list = glob.glob("./ct_data/NCT*/*.xml")
+files_list = glob.glob("../data/raw/NCT*/*.xml")
 print("Number of Studies:", len(files_list))
 
 # get the xml fields of a given clinical trial
@@ -202,70 +204,75 @@ df = df.append(trials_list)
 print(df.shape)
 print(df.head())
 
-df.to_csv("ct_data/clean_data/organized_ct_data.csv", index = False)
+df.to_csv("../data/out/organized_ct_data.csv", index = False)
 
 ## organize funder data
 
-trial_id = []
-funder_names = []
-funder_types = []
-funder_roles = []
+def organize_funder_data():
+    trial_id = []
+    funder_names = []
+    funder_types = []
+    funder_roles = []
 
-start_time = time.time()
-for _, r in df.iterrows():
-    funder = [r['lead_sponsors']]
-    funder_type = [r['lead_sponsor_type']]
-    funder_role = ['lead']
-    if type(r['collaborators']) != float:
-        if len(r['collaborators'].split(';')) == len(r['collaborator_types'].split(';')):
-            funder.extend(r['collaborators'].split(';'))
-            funder_type.extend(r['collaborator_types'].split(';'))
-        else:
-            funder.extend(r['collaborators'].split(';'))
-            funder_type.extend(['na']*len(r['collaborators'].split(';')))
-        funder_role.extend(['collaborator']*len(r['collaborators'].split(';')))
+    start_time = time.time()
+    for _, r in df.iterrows():
+        funder = [r['lead_sponsors']]
+        funder_type = [r['lead_sponsor_type']]
+        funder_role = ['lead']
+        if type(r['collaborators']) != float:
+            if len(r['collaborators'].split(';')) == len(r['collaborator_types'].split(';')):
+                funder.extend(r['collaborators'].split(';'))
+                funder_type.extend(r['collaborator_types'].split(';'))
+            else:
+                funder.extend(r['collaborators'].split(';'))
+                funder_type.extend(['na']*len(r['collaborators'].split(';')))
+            funder_role.extend(['collaborator']*len(r['collaborators'].split(';')))
 
-    funder_names.extend(funder)
-    funder_types.extend(funder_type)
-    trial_id.extend([r['nct_id']]*len(funder))
-    funder_roles.extend(funder_role)
+        funder_names.extend(funder)
+        funder_types.extend(funder_type)
+        trial_id.extend([r['nct_id']]*len(funder))
+        funder_roles.extend(funder_role)
 
-print("Time elapsed:", time.time() - start_time)
-
-funder_df = pd.DataFrame({'trial_id' : trial_id,'funder_name':funder_names,
+    print("Time elapsed:", time.time() - start_time)
+    return pd.DataFrame({'trial_id' : trial_id,'funder_name':funder_names,
                           'funder_type':funder_types,'funder_role':funder_roles})
+
+funder_df = organize_funder_data()
 funder_df = funder_df[funder_df.funder_name != '']
 funder_df.head()
 
 # save funder info
-funder_df.to_csv("ct_data/clean_data/funder_ct_data.csv", index = False)
+funder_df.to_csv("../data/out/funder_ct_data.csv", index = False)
 
-### organize drug data
+### organize intervention data
 
-intervention_names = []
-intervention_types = []
-nct_id = []
+def organize_intervention_data():
+    intervention_names = []
+    intervention_types = []
+    nct_id = []
 
-counter = 0
-start_time = time.time()
-for _, r in df.iterrows():
-    if type(r['interventions']) == float:
-        counter+=1
-        continue
-    tmp_interventions = r['interventions'].split(';')
-    tmp_interventions_types = r['intervention_types'].split(';')
-    if len(tmp_interventions) != len(tmp_interventions_types):
-        counter+=1
-        continue
+    counter = 0
+    start_time = time.time()
+    for _, r in df.iterrows():
+        if type(r['interventions']) == float:
+            counter+=1
+            continue
+        tmp_interventions = r['interventions'].split(';')
+        tmp_interventions_types = r['intervention_types'].split(';')
+        if len(tmp_interventions) != len(tmp_interventions_types):
+            counter+=1
+            continue
 
-    intervention_names.extend(tmp_interventions)
-    intervention_types.extend(tmp_interventions_types)
-    nct_id.extend([r['nct_id']]*len(tmp_interventions))
+        intervention_names.extend(tmp_interventions)
+        intervention_types.extend(tmp_interventions_types)
+        nct_id.extend([r['nct_id']]*len(tmp_interventions))
 
-print("Time taken:", time.time() - start_time)
-print("Number of trials without interventions or intervention types:", counter)
+    print("Time taken:", time.time() - start_time)
+    print("Number of trials without interventions or intervention types:", counter)
 
-drug_df = pd.DataFrame({'nct_id':nct_id,'intervention':intervention_names,'intervention_type':intervention_types})
+    return pd.DataFrame({'nct_id':nct_id,'intervention':intervention_names,'intervention_type':intervention_types})
+
+drug_df = organize_intervention_data()
 drug_df['intervention']= drug_df.intervention.str.lower()
 drug_df = drug_df.drop_duplicates()
 
@@ -274,5 +281,5 @@ drug_df = drug_df[~drug_df.intervention.isin(remove_interventions)]
 print(drug_df.shape)
 print(drug_df.head())
 
-# save files
-drug_df.to_csv("ct_data/clean_data/intervention_ct_data.csv")
+# save file
+drug_df.to_csv("../data/raw/intervention_ct_data.csv")

@@ -1,27 +1,37 @@
 """
 #!/usr/bin/env python
 Author= Kishore Vasan
+Date = 03/15/2022
 
 # Description:
 ## This script cleans the drug intervantion data in trials through a four step process
 ## and curates the drug intervention data
 
+Input files : __ save the following files in the ../data/raw folder
+1) intervention_ct_data.csv -- contains the xml parsed list of interventions in trials
+1) all_drugbank_drugs.csv - parsed database containing drugbank drug id and names
+2) drug_synonym.csv - containing drugbank id, name, and its corresponding synonym
+3) products.csv -- containing drugbank id, name, and its corresponding products
+4) drugs_external_identifiers.csv -- containings the drugbank id, name, and its corresponding external identifiers
+
 ## Specific steps
+
+0.1 Ensure that the drug names from the intervention columns is already split
+    i.e. ("A/B", "A or B", "A,B" becomes A,B) -- the `intervention_ct_data.csv` should already be split
+
 1. map the drug intervention data to the DrugBank data -- this is done in the following steps :
 
-    1.1) Seperate the drug names from the intervention columns i.e. ("A/B", "A or B", "A,B" becomes A,B)
+    1.1) Search for direct text matching with the drug name in DrugBank
 
-    1.2) Search for direct text matching with the drug name in DrugBank
+    1.2) Search for matching with synonyms of the drug names
 
-    1.3) Search for matching with synonyms of the drug names
+    1.3) Map the intervention names with the product names of the drugs
 
-    1.4) save this data `ct_data/clean_data/drug_mapped_ct_data_final.csv`
+    1.4) map the intervention names to external identifier (e.g. wikipedia)
 
-2. find placebo drugs in trials
+    1.5) fuzzy string match of the names with the drugbank names
 
-    2.1) this is done by mapping each trial with its corresponding placebo (if mentioned).
-
-    2.2) save this list along with the drug name
+    1.6) save this data `../data/out/drug_mapped_ct_data.csv`
 
 """
 
@@ -43,12 +53,12 @@ warnings.filterwarnings('ignore')
 ## Step 1: Map drug interventions to Drug Bank (Direct Matching)
 ###
 
-drug_df = pd.read_csv("ct_data/clean_data/intervention_ct_data.csv")
+drug_df = pd.read_csv("../data/raw/intervention_ct_data.csv")
 print("N trials:", drug_df.nct_id.nunique())
 print("N interventions", drug_df.intervention.nunique())
 print(drug_df.head())
 
-db_target_df = pd.read_csv("drug_data/all_drugbank_drugs.csv")
+db_target_df = pd.read_csv("../data/raw/all_drugbank_drugs.csv")
 db_target_df['Name'] = db_target_df.Name.str.lower()
 print("Number of drugs:", db_target_df.Name.nunique())
 print("Number of targets:", db_target_df.Gene_Target.nunique())
@@ -109,7 +119,7 @@ print("Number of drugs:", drug_df[drug_df.intervention_type=='Drug'].interventio
 ## Step 2: Map drug synonym
 ####
 
-drug_synonym = pd.read_csv("drug_data/drug_synonym.csv")
+drug_synonym = pd.read_csv("../data/raw/drug_synonym.csv")
 drug_synonym.columns = ['db_id','synonym']
 drug_synonym = pd.merge(drug_synonym, db_target_df[['db_id','Name']], on='db_id')
 drug_synonym['synonym'] = drug_synonym.synonym.str.lower()
@@ -175,7 +185,7 @@ unmapped_names = list(t_df.intervention.unique())
 ## Step 3: Map drug products
 ###
 
-drug_products = pd.read_csv("drug_data/products.csv")
+drug_products = pd.read_csv("../data/raw/products.csv")
 drug_products['product_name'] = drug_products.product_name.str.lower()
 drug_products['Name'] = drug_products.Name.str.lower()
 print("N drugs:", drug_products.Name.nunique())
@@ -224,10 +234,10 @@ print("N trials unmapped:", unmapped_df.nct_id.nunique())
 print(unmapped_df.head())
 
 ####
-## Step 3: Map to External Identifier
+## Step 4: Map to External Identifier
 ####
 
-ext_ident_df = pd.read_csv("drug_data/drugs_external_identifiers.csv")
+ext_ident_df = pd.read_csv("../data/raw/drugs_external_identifiers.csv")
 ext_ident_df = ext_ident_df[ext_ident_df.identifier_resource=='Wikipedia']
 ext_ident_df['identifier_name'] = ext_ident_df.identifier_name.str.lower()
 ext_ident_df['Name'] = ext_ident_df.Name.str.lower()
@@ -265,7 +275,7 @@ print("N trials unmapped:", unmapped_df.nct_id.nunique())
 print(unmapped_df.head())
 
 ####
-### Step 4: Fuzzy matching drug names
+### Step 5: Fuzzy matching drug names
 ####
 
 drug_list = db_target_df.Name.unique()
@@ -349,13 +359,20 @@ print("N drugs:", final_drug_map_df.intervention.nunique())
 
 
 print("Proportion of Trials mapped:", final_drug_map_df.nct_id.nunique()/drug_df[drug_df.intervention_type=='Drug'].nct_id.nunique())
-# save file
-final_drug_map_df.to_csv("ct_data/clean_data/drug_mapped_ct_data.csv", index=False)
 
-unmapped_df = unmapped_df[unmapped_df.map_intervention == '']
-print("Example of unmapped intervention...")
-print(unmapped_df.head())
-unmapped_df.to_csv('ct_data/clean_data/unmapped_drug_trials.csv', index=False)
+# match columns with drugbank
+final_drug_map_df.columns = ['nct_id','Name','intervention_type']
+
+# save file
+final_drug_map_df.to_csv("../data/out/drug_mapped_ct_data.csv", index=False)
+
+### if you want to save the unmapped drug interventions
+#unmapped_df = unmapped_df[unmapped_df.map_intervention == '']
+#print("Example of unmapped intervention...")
+#print(unmapped_df.head())
+#unmapped_df.to_csv('ct_data/clean_data/unmapped_drug_trials.csv', index=False)
+
+"""
 
 ####
 ## Extra: Get placebo trials and drugs
@@ -591,3 +608,4 @@ final_placebo_trials.head()
 print("number of placebo trials:", final_placebo_trials.nct_id.nunique())
 print("number of placebo drugs:", final_placebo_trials.drug_map.nunique())
 final_placebo_trials.to_csv("ct_data/clean_data/placebo_trials.csv", index = False)
+"""
